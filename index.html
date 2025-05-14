@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulateur Optélios</title>
+  <style>
+    :root {
+      --optelios-blue: #0d3a50;
+      --optelios-yellow: #d5b61d;
+      --white: #ffffff;
+      --font-main: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-main);
+      background-color: var(--optelios-blue);
+      color: var(--white);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+    }
+
+    .container {
+      display: flex;
+      gap: 2rem;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .form-area {
+      flex: 2;
+      background: #0f4764;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .history-panel {
+      flex: 1;
+      background: #083346;
+      border-radius: 12px;
+      padding: 1rem;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      max-height: 600px;
+    }
+
+    .history-entry {
+      background: #ffffff22;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.3rem;
+      border-radius: 6px;
+      border: none;
+      font-size: 1rem;
+    }
+
+    .checkbox {
+      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    button {
+      margin-top: 1.5rem;
+      padding: 0.8rem 2rem;
+      font-size: 1rem;
+      font-weight: bold;
+      color: var(--optelios-blue);
+      background-color: var(--optelios-yellow);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .results {
+      margin-top: 2rem;
+    }
+
+    .result-button-row {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .result-button {
+      background-color: #d5b61d;
+      color: #0d3a50;
+      padding: 0.6rem 1rem;
+      margin: 1rem 0.5rem;
+      font-weight: bold;
+      font-size: 1rem;
+      border-radius: 999px;
+      border: none;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      white-space: nowrap;
+    }
+
+    .result-button:hover {
+      background-color: #f5ce2f;
+      transform: scale(1.03);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+
+    .result-button .arrow {
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+
+    .result-button.open .arrow {
+      transform: rotate(180deg);
+    }
+
+    .result-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .details {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.5s ease-out, opacity 0.5s ease-out;
+      opacity: 0;
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .details.active {
+      max-height: 1000px;
+      opacity: 1;
+    }
+
+    .details div.spaced {
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <img src="logo-optelios.png" alt="Logo Optélios" style="height: 80px; margin-bottom: 1rem;" />
+  <h1>Simulateur de Revenu Optélios</h1>
+  <div class="container">
+    <div class="form-area">
+      <label>Capital initial (€)</label>
+      <input type="text" id="capitalInitial" oninput="formatInput(this)" />
+
+      <label>Versement mensuel (€)</label>
+      <input type="text" id="versementMensuel" oninput="formatInput(this)" />
+
+      <label>Taux de rendement annuel (%)</label>
+      <input type="text" id="tauxAnnuel" onblur="formatInput(this, true)" />
+
+      <label>Durée (années)</label>
+      <input type="text" id="duree" oninput="formatInput(this)" />
+
+      <div class="checkbox">
+        <input type="checkbox" id="estMarie" />
+        <label for="estMarie">Marié(e) ou PACSé(e)</label>
+      </div>
+
+      <button onclick="calculer()">Calculer</button>
+      <button onclick="toggleHistory()">Afficher l'historique</button>
+
+      <div class="results" id="resultats"></div>
+    </div>
+
+    <div class="history-panel" id="historyPanel"></div>
+  </div>
+
+  <script>
+    let history = [];
+
+    function formatInput(el, allowDecimal = false) {
+      let value = el.value.replace(/[^\d.,]/g, '').replace(',', '.');
+      if (!allowDecimal) value = value.replace(/\./g, '');
+      const number = parseFloat(value);
+      if (!isNaN(number)) {
+        el.dataset.raw = number;
+        el.value = number.toLocaleString('fr-FR', {
+          minimumFractionDigits: allowDecimal ? 2 : 0,
+          maximumFractionDigits: allowDecimal ? 2 : 0
+        });
+      } else {
+        el.dataset.raw = '';
+      }
+    }
+
+    function getInputValue(id) {
+      const input = document.getElementById(id);
+      return parseFloat(input.dataset.raw || '0');
+    }
+
+    function toggleDetails(id, btn) {
+      const element = document.getElementById(id);
+      element.classList.toggle("active");
+      btn.classList.toggle("open");
+    }
+
+    function calculer(fromHistory = false, savedInputs = null) {
+      const capitalInitial = fromHistory ? savedInputs.capitalInitial : getInputValue("capitalInitial");
+      const versementMensuel = fromHistory ? savedInputs.versementMensuel : getInputValue("versementMensuel");
+      const tauxAnnuel = fromHistory ? savedInputs.tauxAnnuel : getInputValue("tauxAnnuel") / 100;
+      const duree = fromHistory ? savedInputs.duree : getInputValue("duree");
+      const estMarie = fromHistory ? savedInputs.estMarie : document.getElementById("estMarie").checked;
+
+      const tauxMensuel = Math.pow(1 + tauxAnnuel, 1 / 12) - 1;
+      const nbMois = duree * 12;
+
+      let capitalFinal = capitalInitial * Math.pow(1 + tauxMensuel, nbMois);
+      for (let mois = 1; mois <= nbMois; mois++) {
+        capitalFinal += versementMensuel * Math.pow(1 + tauxMensuel, nbMois - mois);
+      }
+
+      const versementsTotaux = capitalInitial + versementMensuel * nbMois;
+      const interetsTotaux = capitalFinal - versementsTotaux;
+      const interetsAnnuels = capitalFinal * tauxAnnuel;
+      const partInterets = interetsTotaux / capitalFinal;
+      const interetsFiscaux = interetsAnnuels * partInterets;
+
+      let abattement = 0;
+      let tauxImposition = 0.30;
+      if (duree >= 8) {
+        abattement = estMarie ? 9200 : 4600;
+        tauxImposition = 0.247;
+      }
+
+      const montantImposable = Math.max(interetsFiscaux - abattement, 0);
+      const impot = montantImposable * tauxImposition;
+      const revenuAnnuelNet = interetsAnnuels - impot;
+      const revenuMensuelNet = revenuAnnuelNet / 12;
+
+      document.getElementById("resultats").innerHTML = `
+        <div class="result-button-row">
+          <div class="result-block">
+            <button class="result-button" onclick="toggleDetails('capitalDetails', this)">
+              🏦 Capital à terme : ${Math.round(capitalFinal).toLocaleString('fr-FR')} €
+              <span class="arrow">▼</span>
+            </button>
+            <div class="details" id="capitalDetails">
+              <div>Intérêts cumulés : ${Math.round(interetsTotaux).toLocaleString('fr-FR')} €</div>
+              <div class="spaced">Abattement : ${Math.round(abattement).toLocaleString('fr-FR')} €</div>
+              <div class="spaced">
+                <div>Montant imposable : ${Math.round(montantImposable).toLocaleString('fr-FR')} €</div>
+                <div>Impôt annuel estimé : ${Math.round(impot).toLocaleString('fr-FR')} €</div>
+                <div>Taux d'imposition : ${(tauxImposition * 100).toLocaleString('fr-FR', { minimumFractionDigits: 1 })} %</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="result-block">
+            <button class="result-button" onclick="toggleDetails('revenuDetails', this)">
+              📈 Revenu net mensuel : ${Math.round(revenuMensuelNet).toLocaleString('fr-FR')} €
+              <span class="arrow">▼</span>
+            </button>
+            <div class="details" id="revenuDetails">
+              <div>Revenu net annuel : ${Math.round(revenuAnnuelNet).toLocaleString('fr-FR')} €</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      if (!fromHistory) {
+        history.unshift({
+          resume: `→ Revenu mensuel net : ${Math.round(revenuMensuelNet).toLocaleString('fr-FR')} €`,
+          inputs: { capitalInitial, versementMensuel, tauxAnnuel, duree, estMarie }
+        });
+        renderHistory();
+      }
+    }
+
+    function renderHistory() {
+      const historyPanel = document.getElementById("historyPanel");
+      historyPanel.innerHTML = "";
+
+      history.forEach((entry, index) => {
+        const container = document.createElement("div");
+        container.className = "history-entry";
+
+        const resumeText = document.createElement("span");
+        resumeText.innerText = entry.resume;
+        resumeText.style.cursor = "pointer";
+        resumeText.onclick = () => {
+          const inputs = entry.inputs;
+          document.getElementById("capitalInitial").value = inputs.capitalInitial.toLocaleString('fr-FR');
+          document.getElementById("versementMensuel").value = inputs.versementMensuel.toLocaleString('fr-FR');
+          document.getElementById("tauxAnnuel").value = (inputs.tauxAnnuel * 100).toLocaleString('fr-FR');
+          document.getElementById("duree").value = inputs.duree.toLocaleString('fr-FR');
+          document.getElementById("estMarie").checked = inputs.estMarie;
+
+          document.getElementById("capitalInitial").dataset.raw = inputs.capitalInitial;
+          document.getElementById("versementMensuel").dataset.raw = inputs.versementMensuel;
+          document.getElementById("tauxAnnuel").dataset.raw = inputs.tauxAnnuel * 100;
+          document.getElementById("duree").dataset.raw = inputs.duree;
+
+          calculer(true, inputs);
+        };
+
+        const deleteBtn = document.createElement("span");
+        deleteBtn.innerText = "🗑️";
+        deleteBtn.style.float = "right";
+        deleteBtn.style.cursor = "pointer";
+        deleteBtn.title = "Supprimer";
+        deleteBtn.onclick = (e) => {
+          e.stopPropagation();
+          history.splice(index, 1);
+          renderHistory();
+        };
+
+        container.appendChild(resumeText);
+        container.appendChild(deleteBtn);
+        historyPanel.appendChild(container);
+      });
+    }
+
+    function toggleHistory() {
+      const panel = document.getElementById("historyPanel");
+      panel.style.display = panel.style.display === "flex" ? "none" : "flex";
+    }
+  </script>
+</body>
+</html>
