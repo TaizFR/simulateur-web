@@ -27,6 +27,22 @@
       margin-bottom: 1rem;
     }
 
+    button {
+      margin: 0 0.5rem 1rem 0.5rem;
+      padding: 0.6rem 1.4rem;
+      font-size: 1rem;
+      font-weight: bold;
+      color: var(--optelios-blue);
+      background-color: var(--optelios-yellow);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .tab-content {
+      width: 100%;
+    }
+
     .container {
       display: flex;
       gap: 2rem;
@@ -67,7 +83,7 @@
       font-weight: bold;
     }
 
-    input[type="text"] {
+    input[type="text"], input[type="number"] {
       width: 100%;
       padding: 0.5rem;
       margin-top: 0.3rem;
@@ -81,18 +97,6 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-    }
-
-    button {
-      margin-top: 1.5rem;
-      padding: 0.8rem 2rem;
-      font-size: 1rem;
-      font-weight: bold;
-      color: var(--optelios-blue);
-      background-color: var(--optelios-yellow);
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
     }
 
     .results {
@@ -166,34 +170,59 @@
 <body>
   <img src="logo-optelios.png" alt="Logo Optélios" style="height: 80px; margin-bottom: 1rem;" />
   <h1>Simulateur de Revenu Optélios</h1>
-  <div class="container">
-    <div class="form-area">
-      <label>Capital initial (€)</label>
-      <input type="text" id="capitalInitial" oninput="formatInput(this)" />
 
-      <label>Versement mensuel (€)</label>
-      <input type="text" id="versementMensuel" oninput="formatInput(this)" />
-
-      <label>Taux de rendement annuel (%)</label>
-      <input type="text" id="tauxAnnuel" onblur="formatInput(this, true)" />
-
-      <label>Durée (années)</label>
-      <input type="text" id="duree" oninput="formatInput(this)" />
-
-      <div class="checkbox">
-        <input type="checkbox" id="estMarie" />
-        <label for="estMarie">Marié(e) ou PACSé(e)</label>
-      </div>
-
-      <button onclick="calculer()">Calculer</button>
-      <button onclick="toggleHistory()">Afficher l'historique</button>
-
-      <div class="results" id="resultats"></div>
-    </div>
-
-    <div class="history-panel" id="historyPanel"></div>
+  <!-- Onglets -->
+  <div style="margin-bottom: 1rem;">
+    <button onclick="switchTab('tab1')">💼 Simulateur Simple</button>
+    <button onclick="switchTab('tab2')">📊 Simulateur Avancé</button>
   </div>
 
+  <!-- Onglet 1 -->
+  <div id="tab1" class="tab-content" style="display:block;">
+    <div class="container">
+      <div class="form-area">
+        <label>Capital initial (€)</label>
+        <input type="text" id="capitalInitial" oninput="formatInput(this)" />
+
+        <label>Versement mensuel (€)</label>
+        <input type="text" id="versementMensuel" oninput="formatInput(this)" />
+
+        <label>Taux de rendement annuel (%)</label>
+        <input type="text" id="tauxAnnuel" onblur="formatInput(this, true)" />
+
+        <label>Durée (années)</label>
+        <input type="text" id="duree" oninput="formatInput(this)" />
+
+        <div class="checkbox">
+          <input type="checkbox" id="estMarie" />
+          <label for="estMarie">Marié(e) ou PACSé(e)</label>
+        </div>
+
+        <button onclick="calculer()">Calculer</button>
+        <button onclick="toggleHistory()">Afficher l'historique</button>
+
+        <div class="results" id="resultats"></div>
+      </div>
+
+      <div class="history-panel" id="historyPanel"></div>
+    </div>
+  </div>
+
+  <!-- Onglet 2 -->
+  <div id="tab2" class="tab-content" style="display:none;">
+    <div style="max-width: 800px; margin: auto; background: #0f4764; border-radius: 10px; padding: 20px;">
+      <input type="number" id="pu" placeholder="Capital initial" />
+      <input type="number" id="pp" placeholder="Versement mensuel" />
+      <input type="number" id="rx" placeholder="Taux annuel (%)" />
+      <input type="number" id="an" placeholder="Durée (années)" />
+      <label><input type="checkbox" id="marie" /> Marié / Pacsé</label>
+      <button onclick="lancerSimuAvance()">Simuler</button>
+      <div id="simu-avance" style="margin-top: 2rem;"></div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="simulateur-avance.js"></script>
   <script>
     let history = [];
 
@@ -342,6 +371,11 @@
     function toggleHistory() {
       const panel = document.getElementById("historyPanel");
       panel.style.display = panel.style.display === "flex" ? "none" : "flex";
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.getElementById(tabId).style.display = 'block';
     }
   </script>
 </body>
